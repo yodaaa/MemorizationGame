@@ -1,3 +1,10 @@
+/*
+	user.c 記憶ゲーム
+	Created by 1447347 3EP2-54 依田真明
+	Copyright(C) 2016 Masaaki Yoda @ Kanazawa.Inst.Tech
+				All rights reserved.
+*/
+
 #include <avr/io.h>
 #include <avr/interrupt.h>
 #include <avr/wdt.h>
@@ -17,7 +24,7 @@ typedef struct Pos {
 	char m; //行
 	char n; //列
 } Pos;
-Pos pos[5];
+Pos pos[5]; 
 
 static char sPortC[5];
 static char sPortD[5];
@@ -41,6 +48,12 @@ int main(void)
 	TCCR1B = 0b00000100;
 	unsigned int i, j;
 	int check = 0;
+
+	unsigned int cnt;
+	unsigned char pre_data;
+	unsigned char tmp;
+	unsigned char n;
+	int y = 1;
 	
 	init_rand();
 	//ランダムに５つの場所を生成
@@ -48,17 +61,16 @@ int main(void)
 		pos[i].m = rand() % 8 + 1;
 		pos[i].n = rand() % 8 + 1;
 		for(j=0; j<i; j++){
-			while(pos[i].m == pos[j].m && pos[i].n == pos[j].n){
+			while(pos[i].m == pos[j].m && pos[i].n == pos[j].n){ //同一の場所があった場合、再生成
 				pos[i].m = rand() % 8 + 1;
 				pos[i].n = rand() % 8 + 1;		
 			}
 		}
 	}
-	//pos[0].m =8;
-	//pos[0].n =5;
+
 	//LED光らせる
 	for(i=0; i<=5; i++){
-		TCNT1 = 0;
+		TCNT1 = 0; //タイマ割り込み
 		while(TCNT1 < 60000){
 			wdt_reset();
 		}
@@ -128,13 +140,6 @@ int main(void)
 	PORTC = 0x3f; 
 	PORTD = 0xfa;
 
-
-	unsigned int cnt;
-	unsigned char pre_data;
-	unsigned char tmp;
-	unsigned char n;
-	int y = 1;
-
 	DDRB = 0xff;
 	DDRC = 0x0f;
 	DDRD = 0xfa;
@@ -164,19 +169,18 @@ int main(void)
 			/** スイッチの状態が変化した時の処理 **/
 			if (pre_data != data) {
 				pre_data = data;	// スイッチ情報を更新
-
-				// 任意の処理                
+              
 				switch (data) {
 				case 0:
 					break;
-				case 1:
+				case 1: //SW1
 					if(PORTB==0x80){					
 						PORTB = 0x01;
 					}
 					else
 						PORTB=PORTB<<1;
 					break;
-				case 2:
+				case 2: //SW2
 					y++;
 					if(y==9){
 						PORTD = 0xfa;
@@ -203,14 +207,14 @@ int main(void)
 						PORTD = 0x7a;
 					}
 					break;
-				case 3:
-					if( (PORTC == sPortC[check] || PORTD == sPortD[check]) && PORTB == sPortB[check] ){
+				case 3: //SW1 + SW2
+					if( (PORTC == sPortC[check] && PORTD == sPortD[check]) && PORTB == sPortB[check] ){
 						check++;
 						PORTB = 0x01;
 						PORTC = 0xfe;	/* SW1,2 をプルアップ  */
 						PORTD = 0xff;
 						y=1;
-						if(check==5){
+						if(check==5){ //全問正解のとき
 							PORTC = 0x30;
 							PORTD = 0x0a;
 							PORTB = 0xff;
@@ -223,17 +227,6 @@ int main(void)
 			}
 
 		}
-
-		/** スイッチの状態に応じて行う処理 **/
-		switch (data) {
-		case 0:
-		case 1:
-		case 2:
-		case 3:
-			break;
-		}
-
-		/** その他の処理 **/
 
 	}
 	return 0;
